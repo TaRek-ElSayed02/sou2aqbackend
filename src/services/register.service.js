@@ -175,10 +175,10 @@ class RegisterService {
                 throw new Error('كود التحقق منتهي الصلاحية');
             }
 
-            // تحديث حالة التحقق
+            // تحديث حالة التحقق وتفعيل الحساب
             await connection.execute(
-                'UPDATE users SET emailVerifiedAt = NOW(), modifiedAt = NOW() WHERE email = ?',
-                [email]
+                'UPDATE users SET emailVerifiedAt = NOW(), isActive = ?, modifiedAt = NOW() WHERE email = ?',
+                ['yes', email]
             );
 
             return true;

@@ -110,7 +110,18 @@ class RegisterController {
 
   async verifyEmail(req, res) {
     try {
-      const { email, otp } = req.body;
+      const { email, otp } = req.body || {};
+
+      if (!email || !otp) {
+        return res.status(400).json({
+          success: false,
+          code: 400,
+          error: {
+            type: 'ValidationError',
+            message: 'يجب إدخال البريد الإلكتروني وكود التحقق'
+          }
+        });
+      }
 
       await registerService.verifyOTP(email, otp);
 
