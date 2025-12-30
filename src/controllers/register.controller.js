@@ -7,8 +7,11 @@ class RegisterController {
   constructor() {
     this.register = this.register.bind(this);
     this.verifyEmail = this.verifyEmail.bind(this);
+    this.checkEmail = this.checkEmail.bind(this);
+    this.resendVerification = this.resendVerification.bind(this);
     this.updateOTP = this.updateOTP.bind(this);
   }
+
   async register(req, res) {
     try {
       // تنظيف المدخلات
@@ -19,7 +22,7 @@ class RegisterController {
         password: req.body.password,
         DoB: req.body.DoB,
         phone: sanitizeInput(req.body.phone),
-        role: 'user',
+        role: req.body.role || 'user',
         isActive: 'no'
       };
 
@@ -88,7 +91,7 @@ class RegisterController {
         });
       }
       console.error('Registration error:', error);
-      
+
       const errorResponse = {
         success: false,
         code: 400,
@@ -103,7 +106,7 @@ class RegisterController {
           path: req.originalUrl
         }
       };
-      
+
       res.status(400).json(errorResponse);
     }
   }
@@ -166,7 +169,100 @@ class RegisterController {
           'اطلب إرسال كود جديد إذا انتهت صلاحية هذا الكود'
         ]
       };
+
+      res.status(400).json(errorResponse);
+    }
+  }
+
+  async checkEmail(req, res) {
+    try {
+      const { email } = req.query;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          code: 400,
+          error: {
+            type: 'ValidationError',
+            message: 'البريد الإلكتروني مطلوب'
+          }
+        });
+      }
+
+      const exists = await registerService.checkEmailExists(email);
+
+      res.json({
+        success: true,
+        code: 200,
+        data: {
+          email: email,
+          exists: exists,
+          status: exists ? 'مسجل' : 'غير مسجل'
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: this.generateRequestId()
+        }
+      });
+    } catch (error) {
+      console.error('Check email error:', error);
+      res.status(400).json({
+        success: false,
+        code: 400,
+        error: {
+          type: 'DatabaseError',
+          message: 'حدث خطأ في التحقق من البريد الإلكتروني'
+        }
+      });
+    }
+  }
+
+  async resendVerification(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          code: 400,
+          error: {
+            type: 'ValidationError',
+            message: 'البريد الإلكتروني مطلوب'
+          }
+        });
+      }
+
+      await registerService.resendVerificationOTP(email);
+
+      res.json({
+        success: true,
+        code: 200,
+        data: {
+          message: 'تم إرسال كود التحقق بنجاح',
+          email: email,
+          sentAt: new Date().toISOString(),
+          otpInfo: {
+            validity: '90 ثانية',
+            note: 'تم إرسال OTP جديد إلى بريدك الإلكتروني'
+          }
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+          requestId: this.generateRequestId()
+        }
+      });
+    } catch (error) {
+      console.error('Resend verification error:', error);
       
+      const errorResponse = {
+        success: false,
+        code: 400,
+        error: {
+          type: 'VerificationError',
+          message: error.message
+        }
+      };
+
       res.status(400).json(errorResponse);
     }
   }
@@ -208,7 +304,7 @@ class RegisterController {
     const birthDate = new Date(dateString);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
@@ -227,13 +323,13 @@ class RegisterController {
       '18 سنة': 'يجب أن يكون عمرك 18 سنة على الأقل',
       '10 إلى 15 رقم': 'رقم الهاتف غير صالح'
     };
-    
+
     for (const [key, value] of Object.entries(details)) {
       if (errorMessage.includes(key)) {
         return value;
       }
     }
-    
+
     return 'حدث خطأ في التحقق من البيانات';
   }
 
@@ -263,13 +359,13 @@ class RegisterController {
         'لا تستخدم مسافات أو رموز'
       ]
     };
-    
+
     for (const [key, value] of Object.entries(suggestions)) {
       if (errorMessage.includes(key)) {
         return value;
       }
     }
-    
+
     return ['حاول مرة أخرى', 'تحقق من جميع الحقول', 'اتصل بالدعم الفني إذا استمرت المشكلة'];
   }
 }

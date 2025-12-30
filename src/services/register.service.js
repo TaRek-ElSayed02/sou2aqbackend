@@ -56,7 +56,7 @@ class RegisterService {
                     userData.userName,
                     userData.email,
                     hashedPassword,
-                    'user',
+                    userData.role || 'user',
                     userData.DoB,
                     userData.phone,
                     'no',
@@ -121,8 +121,8 @@ class RegisterService {
         }
 
         // التأكد من أن role هو user فقط
-        if (userData.role && userData.role !== 'user') {
-            userData.role = 'user';
+        if (userData.role && !['user', 'admin'].includes(userData.role)) {
+            userData.role = 'user'; // القيمة الافتراضية إذا كانت غير صحيحة
         }
 
         // التأكد من أن isActive هو no فقط
@@ -183,6 +183,68 @@ class RegisterService {
 
             return true;
         } catch (error) {
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    async checkEmailExists(email) {
+        const connection = await db.pool.getConnection();
+        try {
+            const [users] = await connection.execute(
+                'SELECT id FROM users WHERE email = ?',
+                [email]
+            );
+
+            return users.length > 0;
+        } catch (error) {
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    async resendVerificationOTP(email) {
+        const connection = await db.pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // التحقق من وجود المستخدم
+            const [users] = await connection.execute(
+                'SELECT id, userName FROM users WHERE email = ?',
+                [email]
+            );
+
+            if (users.length === 0) {
+                throw new Error('البريد الإلكتروني غير مسجل');
+            }
+
+            const user = users[0];
+
+            // توليد OTP جديد
+            const newOTP = generateOTP();
+            const emailOTPExpiresAt = new Date(Date.now() + 90 * 1000);
+
+            // تحديث OTP في قاعدة البيانات
+            await connection.execute(
+                'UPDATE users SET emailOTP = ?, emailOTPExpiresAt = ?, modifiedAt = NOW() WHERE id = ?',
+                [newOTP, emailOTPExpiresAt, user.id]
+            );
+
+            // إرسال البريد الإلكتروني
+            try {
+                await emailService.sendOTPEmail(email, user.userName, newOTP);
+            } catch (emailError) {
+                console.warn('⚠️ فشل إرسال البريد لإعادة التحقق:', emailError.message);
+                await connection.rollback();
+                throw new Error('فشل إرسال كود التحقق. الرجاء المحاولة لاحقاً');
+            }
+
+            await connection.commit();
+            return true;
+        } catch (error) {
+            await connection.rollback();
             throw error;
         } finally {
             connection.release();

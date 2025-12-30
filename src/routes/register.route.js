@@ -14,6 +14,12 @@ router.post(
 // التحقق من البريد الإلكتروني
 router.post('/verify-email', registerController.verifyEmail);
 
+// التحقق من وجود البريد الإلكتروني
+router.get('/check-email', registerController.checkEmail);
+
+// إعادة إرسال كود التحقق
+router.post('/resend-verification', registerController.resendVerification);
+
 // تحديث OTP (للسوبر أدمن فقط)
 router.post(
   '/update-otp/:userId',
