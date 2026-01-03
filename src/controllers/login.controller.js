@@ -52,7 +52,7 @@ class LoginController {
           accountInfo: {
             role: userProfile.role,
             status: userProfile.isActive === 'yes' ? 'yes' : 'no',
-            profileImage: userProfile.profileImage || 'لا توجد صورة',
+            profileImage: userProfile.profileImage || null,
             emailVerified: !!userProfile.emailVerifiedAt,
             lastLogin: userProfile.lastLogin
           }

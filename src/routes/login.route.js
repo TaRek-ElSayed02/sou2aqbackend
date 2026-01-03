@@ -63,7 +63,7 @@ router.get(
             accountInfo: {
               role: userProfile.role,
               status: userProfile.isActive === 'yes' ? 'مفعل' : 'غير مفعل',
-              profileImage: userProfile.profileImage || 'لا توجد صورة',
+              profileImage: userProfile.profileImage || null,
               emailVerified: !!userProfile.emailVerifiedAt,
               lastLogin: userProfile.lastLogin,
               memberSince: userProfile.createdAt
