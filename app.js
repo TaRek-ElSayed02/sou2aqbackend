@@ -34,7 +34,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // تقديم الملفات الثابتة (للصور)
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+},  express.static(path.join(__dirname, 'uploads')));
 
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
@@ -45,11 +48,13 @@ app.use('/uploads', (req, res, next) => {
 const registerRoutes = require('./src/routes/register.route');
 const loginRoutes = require('./src/routes/login.route');
 const blogRoutes = require('./src/routes/blog.route');
+const usersRoutes = require('./src/routes/users.route');
 
 
 app.use('/api/auth', registerRoutes);
 app.use('/api/auth', loginRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/users', usersRoutes);
 
 // Route أساسية للتحقق من عمل السيرفر
 app.get('/api/health', (req, res) => {

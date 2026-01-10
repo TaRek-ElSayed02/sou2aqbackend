@@ -25,3 +25,50 @@ exports.requireAuth = (req, res, next) => {
     });
   }
 };
+
+
+exports.requireOwnershipOrSuperAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized'
+    });
+  }
+
+  // السوبر أدمن عنده صلاحية لأي يوزر
+  if (req.user.role === 'superAdmin') {
+    return next();
+  }
+
+  // اليوزر العادي مسموح له يتعدل على نفسه بس
+  const requestedUserId = req.params.id;
+  const currentUserId = req.user.id.toString(); // تأكد من النوع
+
+  if (requestedUserId !== currentUserId) {
+    return res.status(403).json({
+      success: false,
+      message: 'Forbidden: You can only modify your own profile'
+    });
+  }
+
+  next();
+};
+
+exports.requireSuperAdmin = (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized'
+      });
+    }
+  
+    if (req.user.role !== 'superAdmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: SuperAdmin only'
+      });
+    }
+  
+    next();
+  };
+  
