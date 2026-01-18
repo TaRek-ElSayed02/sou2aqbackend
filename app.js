@@ -1,62 +1,242 @@
+// const express = require('express');
+// const cors = require('cors');
+// const helmet = require('helmet');
+// const morgan = require('morgan');
+// const path = require('path');
+// const multer = require('multer');
+// require('dotenv').config();
+
+// const app = express();
+
+// // Middleware
+// app.use(helmet({
+//   contentSecurityPolicy: false, 
+//   crossOriginEmbedderPolicy: false
+// }));
+// const allowedOrigins = [
+//   'http://localhost:3000',
+//   'https://yourdomain.com'
+// ];
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true
+// }));
+
+// app.use(morgan('dev'));
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+
+// // تقديم الملفات الثابتة (للصور)
+// app.use('/uploads', (req, res, next) => {
+//   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+//   next();
+// },  express.static(path.join(__dirname, 'uploads')));
+
+// app.use('/uploads', (req, res, next) => {
+//   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+//   next();
+// }, express.static(path.join(__dirname, 'uploads')));
+
+// // Routes
+// const registerRoutes = require('./src/routes/register.route');
+// const loginRoutes = require('./src/routes/login.route');
+// const blogRoutes = require('./src/routes/blog.route');
+// const usersRoutes = require('./src/routes/users.route');
+// const productsRoutes = require('./src/routes/products.route');
+
+
+// app.use('/api/auth', registerRoutes);
+// app.use('/api/auth', loginRoutes);
+// app.use('/api/blogs', blogRoutes);
+// app.use('/api/users', usersRoutes);
+// app.use('/api/products', productsRoutes);
+
+// // Route أساسية للتحقق من عمل السيرفر
+// app.get('/api/health', (req, res) => {
+//   res.status(200).json({
+//     success: true,
+//     code: 200,
+//     data: {
+//       status: 'healthy',
+//       timestamp: new Date().toISOString(),
+//       version: '1.0.0',
+//       service: 'SOU2AQ API'
+//     }
+//   });
+// });
+
+// // Error handling middleware
+// app.use((err, req, res, next) => {
+//   console.error('❌ Server Error:', err.stack);
+  
+//   if (err instanceof multer.MulterError) {
+//     return res.status(400).json({
+//       success: false,
+//       code: 400,
+//       error: {
+//         type: 'FileUploadError',
+//         message: 'خطأ في رفع الملف: ' + err.message,
+//         code: err.code
+//       }
+//     });
+//   }
+  
+//   res.status(err.status || 500).json({
+//     success: false,
+//     code: err.status || 500,
+//     error: {
+//       type: 'ServerError',
+//       message: err.message || 'حدث خطأ في الخادم',
+//       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+//     }
+//   });
+// });
+
+// // 404 handler
+// app.use((req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     code: 404,
+//     error: {
+//       type: 'NotFoundError',
+//       message: 'الصفحة غير موجودة',
+//       path: req.originalUrl
+//     }
+//   });
+// });
+
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//   console.log(`🚀 Server running on port ${PORT}`);
+//   console.log(`📧 Email service: ${process.env.EMAIL_USER ? 'مفعل' : 'غير مفعل'}`);
+//   console.log(`🔐 JWT secret: ${process.env.JWT_SECRET ? 'مضبوط' : 'استخدام قيمة افتراضية'}`);
+//   console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'جميع النطاقات (*)'}`);
+// });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
 const multer = require('multer');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
+// ==================== إعدادات المجلدات ====================
+const uploadsDir = path.join(__dirname, 'uploads');
+const blogImagesDir = path.join(__dirname, 'uploads/blogImages');
+
+console.log('📁 Checking upload directories...');
+console.log('📁 Main uploads directory:', uploadsDir);
+console.log('📁 Blog images directory:', blogImagesDir);
+
+// إنشاء المجلدات إذا لم تكن موجودة
+const createDirectories = () => {
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
+      console.log('✅ Created main uploads directory');
+    }
+    
+    if (!fs.existsSync(blogImagesDir)) {
+      fs.mkdirSync(blogImagesDir, { recursive: true, mode: 0o755 });
+      console.log('✅ Created blog images directory');
+    }
+    
+    // تحقق من صلاحيات الكتابة
+    [uploadsDir, blogImagesDir].forEach(dir => {
+      try {
+        fs.accessSync(dir, fs.constants.W_OK);
+        console.log(`✅ ${dir} is writable`);
+      } catch (err) {
+        console.error(`❌ ${dir} is not writable:`, err.message);
+        // حاول إصلاح الصلاحيات
+        try {
+          fs.chmodSync(dir, 0o755);
+          console.log(`🔧 Fixed permissions for ${dir}`);
+        } catch (chmodErr) {
+          console.error(`❌ Could not fix permissions for ${dir}:`, chmodErr.message);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('❌ Error setting up directories:', err);
+  }
+};
+
+createDirectories();
+
+// ==================== الميدلوير ====================
 app.use(helmet({
-  contentSecurityPolicy: false, 
-  crossOriginEmbedderPolicy: false
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
   'https://yourdomain.com'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // السماح للطلبات بدون origin (مثل Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('🚫 CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Content-Disposition']
 }));
 
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// تقديم الملفات الثابتة (للصور)
+// ==================== الملفات الثابتة ====================
 app.use('/uploads', (req, res, next) => {
+  // تعيين هيدرات CORS للملفات
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   next();
-},  express.static(path.join(__dirname, 'uploads')));
+}, express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    // تعيين هيدرات التخزين المؤقت للصور
+    if (path.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 ساعة
+    }
+  }
+}));
 
-app.use('/uploads', (req, res, next) => {
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-}, express.static(path.join(__dirname, 'uploads')));
-
-// Routes
+// ==================== الروابط ====================
 const registerRoutes = require('./src/routes/register.route');
 const loginRoutes = require('./src/routes/login.route');
 const blogRoutes = require('./src/routes/blog.route');
 const usersRoutes = require('./src/routes/users.route');
-
+const productsRoutes = require('./src/routes/products.route');
 
 app.use('/api/auth', registerRoutes);
 app.use('/api/auth', loginRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/products', productsRoutes);
 
-// Route أساسية للتحقق من عمل السيرفر
+// ==================== نقاط النهاية ====================
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -65,15 +245,51 @@ app.get('/api/health', (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
-      service: 'SOU2AQ API'
+      service: 'Blog API',
+      uploadsDirectory: {
+        exists: fs.existsSync(uploadsDir),
+        writable: (() => {
+          try {
+            fs.accessSync(uploadsDir, fs.constants.W_OK);
+            return true;
+          } catch {
+            return false;
+          }
+        })(),
+        path: uploadsDir
+      }
     }
   });
 });
 
-// Error handling middleware
+// نقطة نهاية لاختبار رفع الملفات
+app.post('/api/test-upload', (req, res, next) => {
+  const upload = multer({ 
+    dest: blogImagesDir,
+    limits: { fileSize: 10 * 1024 * 1024 }
+  }).single('image');
+  
+  upload(req, res, function(err) {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'File uploaded successfully',
+      file: req.file
+    });
+  });
+});
+
+// ==================== معالجة الأخطاء ====================
 app.use((err, req, res, next) => {
   console.error('❌ Server Error:', err.stack);
   
+  // أخطاء multer
   if (err instanceof multer.MulterError) {
     return res.status(400).json({
       success: false,
@@ -86,6 +302,31 @@ app.use((err, req, res, next) => {
     });
   }
   
+  // أخطاء التحقق
+  if (err.status === 400) {
+    return res.status(400).json({
+      success: false,
+      code: 400,
+      error: {
+        type: 'ValidationError',
+        message: err.message
+      }
+    });
+  }
+  
+  // أخطاء 404
+  if (err.status === 404) {
+    return res.status(404).json({
+      success: false,
+      code: 404,
+      error: {
+        type: 'NotFoundError',
+        message: err.message
+      }
+    });
+  }
+  
+  // الأخطاء العامة
   res.status(err.status || 500).json({
     success: false,
     code: err.status || 500,
@@ -105,15 +346,36 @@ app.use((req, res) => {
     error: {
       type: 'NotFoundError',
       message: 'الصفحة غير موجودة',
-      path: req.originalUrl
+      path: req.originalUrl,
+      method: req.method
     }
   });
 });
 
+// ==================== تشغيل الخادم ====================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📧 Email service: ${process.env.EMAIL_USER ? 'مفعل' : 'غير مفعل'}`);
-  console.log(`🔐 JWT secret: ${process.env.JWT_SECRET ? 'مضبوط' : 'استخدام قيمة افتراضية'}`);
-  console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'جميع النطاقات (*)'}`);
+  console.log(`
+🚀 Server running on port ${PORT}
+📁 Upload directory: ${uploadsDir}
+📸 Blog images: ${blogImagesDir}
+🔐 JWT: ${process.env.JWT_SECRET ? '✓ Configured' : '✗ Using default'}
+📧 Email: ${process.env.EMAIL_USER ? '✓ Configured' : '✗ Disabled'}
+🌐 CORS: ${allowedOrigins.join(', ')}
+  `);
+});
+
+// معالجة إغلاق الخادم
+process.on('SIGINT', () => {
+  console.log('\n👋 Server shutting down...');
+  process.exit(0);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('🔥 Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
 });
