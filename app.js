@@ -235,6 +235,9 @@ app.use('/api/auth', loginRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/wishlist', require('./src/routes/wishlist.route'));
+app.use('/api/cart', require('./src/routes/cart.route'));
+
 
 // ==================== نقاط النهاية ====================
 app.get('/api/health', (req, res) => {
