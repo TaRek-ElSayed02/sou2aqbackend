@@ -1,124 +1,3 @@
-// const express = require('express');
-// const cors = require('cors');
-// const helmet = require('helmet');
-// const morgan = require('morgan');
-// const path = require('path');
-// const multer = require('multer');
-// require('dotenv').config();
-
-// const app = express();
-
-// // Middleware
-// app.use(helmet({
-//   contentSecurityPolicy: false, 
-//   crossOriginEmbedderPolicy: false
-// }));
-// const allowedOrigins = [
-//   'http://localhost:3000',
-//   'https://yourdomain.com'
-// ];
-
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     if (!origin || allowedOrigins.includes(origin)) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   credentials: true
-// }));
-
-// app.use(morgan('dev'));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-
-// // تقديم الملفات الثابتة (للصور)
-// app.use('/uploads', (req, res, next) => {
-//   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-//   next();
-// },  express.static(path.join(__dirname, 'uploads')));
-
-// app.use('/uploads', (req, res, next) => {
-//   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-//   next();
-// }, express.static(path.join(__dirname, 'uploads')));
-
-// // Routes
-// const registerRoutes = require('./src/routes/register.route');
-// const loginRoutes = require('./src/routes/login.route');
-// const blogRoutes = require('./src/routes/blog.route');
-// const usersRoutes = require('./src/routes/users.route');
-// const productsRoutes = require('./src/routes/products.route');
-
-
-// app.use('/api/auth', registerRoutes);
-// app.use('/api/auth', loginRoutes);
-// app.use('/api/blogs', blogRoutes);
-// app.use('/api/users', usersRoutes);
-// app.use('/api/products', productsRoutes);
-
-// // Route أساسية للتحقق من عمل السيرفر
-// app.get('/api/health', (req, res) => {
-//   res.status(200).json({
-//     success: true,
-//     code: 200,
-//     data: {
-//       status: 'healthy',
-//       timestamp: new Date().toISOString(),
-//       version: '1.0.0',
-//       service: 'SOU2AQ API'
-//     }
-//   });
-// });
-
-// // Error handling middleware
-// app.use((err, req, res, next) => {
-//   console.error('❌ Server Error:', err.stack);
-  
-//   if (err instanceof multer.MulterError) {
-//     return res.status(400).json({
-//       success: false,
-//       code: 400,
-//       error: {
-//         type: 'FileUploadError',
-//         message: 'خطأ في رفع الملف: ' + err.message,
-//         code: err.code
-//       }
-//     });
-//   }
-  
-//   res.status(err.status || 500).json({
-//     success: false,
-//     code: err.status || 500,
-//     error: {
-//       type: 'ServerError',
-//       message: err.message || 'حدث خطأ في الخادم',
-//       ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-//     }
-//   });
-// });
-
-// // 404 handler
-// app.use((req, res) => {
-//   res.status(404).json({
-//     success: false,
-//     code: 404,
-//     error: {
-//       type: 'NotFoundError',
-//       message: 'الصفحة غير موجودة',
-//       path: req.originalUrl
-//     }
-//   });
-// });
-
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => {
-//   console.log(`🚀 Server running on port ${PORT}`);
-//   console.log(`📧 Email service: ${process.env.EMAIL_USER ? 'مفعل' : 'غير مفعل'}`);
-//   console.log(`🔐 JWT secret: ${process.env.JWT_SECRET ? 'مضبوط' : 'استخدام قيمة افتراضية'}`);
-//   console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'جميع النطاقات (*)'}`);
-// });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -209,15 +88,41 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ==================== الملفات الثابتة ====================
+const uploadsAbsolutePath = path.resolve(__dirname, 'uploads');
+console.log('📁 Serving static files from:', uploadsAbsolutePath);
+
+// تحقق من وجود مجلد uploads
+if (!fs.existsSync(uploadsAbsolutePath)) {
+  console.log('⚠️ uploads folder does not exist, creating it...');
+  fs.mkdirSync(uploadsAbsolutePath, { recursive: true });
+}
+
 app.use('/uploads', (req, res, next) => {
   // تعيين هيدرات CORS للملفات
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   next();
-}, express.static(path.join(__dirname, 'uploads'), {
-  setHeaders: (res, path) => {
+}, express.static(uploadsAbsolutePath, {
+  setHeaders: (res, filePath) => {
+    // تعيين Content-Type بناءً على نوع الملف
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml'
+    };
+    
+    if (mimeTypes[ext]) {
+      res.setHeader('Content-Type', mimeTypes[ext]);
+    }
+    
     // تعيين هيدرات التخزين المؤقت للصور
-    if (path.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+    if (ext.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
       res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 ساعة
     }
   }
@@ -237,6 +142,10 @@ app.use('/api/users', usersRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/wishlist', require('./src/routes/wishlist.route'));
 app.use('/api/cart', require('./src/routes/cart.route'));
+app.use('/api/site', require('./src/routes/site.route'));
+app.use('/api/maps', require('./src/routes/maps.route'));
+app.use('/api/social', require('./src/routes/social.route'));
+app.use('/api/comment', require('./src/routes/comment.route'));
 
 
 // ==================== نقاط النهاية ====================
@@ -265,26 +174,56 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// نقطة نهاية لاختبار رفع الملفات
-app.post('/api/test-upload', (req, res, next) => {
-  const upload = multer({ 
-    dest: blogImagesDir,
-    limits: { fileSize: 10 * 1024 * 1024 }
-  }).single('image');
+// نقطة نهاية للتحقق من الملفات المتاحة
+app.get('/api/test-uploads', (req, res) => {
+  const files = {};
+  const dirs = {
+    siteImages: path.join(uploadsAbsolutePath, 'siteImages'),
+    blogImages: path.join(uploadsAbsolutePath, 'blogImages'),
+    productsImages: path.join(uploadsAbsolutePath, 'productsImages'),
+    profileImages: path.join(uploadsAbsolutePath, 'profileImages')
+  };
   
-  upload(req, res, function(err) {
+  Object.entries(dirs).forEach(([name, dir]) => {
+    if (fs.existsSync(dir)) {
+      files[name] = fs.readdirSync(dir);
+    }
+  });
+  
+  res.json({
+    success: true,
+    uploadsPath: uploadsAbsolutePath,
+    directories: dirs,
+    files: files
+  });
+});
+
+// نقطة نهاية لاختبار تحميل ملف معين
+app.get('/api/test-file/:dir/:filename', (req, res) => {
+  const { dir, filename } = req.params;
+  const filePath = path.join(uploadsAbsolutePath, dir, filename);
+  
+  console.log('🔍 Requested file:', filePath);
+  console.log('📁 Directory:', path.dirname(filePath));
+  console.log('🔐 File exists:', fs.existsSync(filePath));
+  
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({
+      success: false,
+      message: 'File not found',
+      requestedPath: filePath
+    });
+  }
+  
+  res.sendFile(filePath, (err) => {
     if (err) {
-      return res.status(400).json({
+      console.error('❌ Error sending file:', err);
+      res.status(500).json({
         success: false,
-        message: err.message
+        message: 'Error sending file',
+        error: err.message
       });
     }
-    
-    res.json({
-      success: true,
-      message: 'File uploaded successfully',
-      file: req.file
-    });
   });
 });
 
