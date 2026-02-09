@@ -70,7 +70,7 @@ exports.getMapById = async (id) => {
 exports.getMapsBySiteIdPublic = async (siteId) => {
   const sql = `
     SELECT * FROM maps 
-    WHERE siteId = ? AND isActive = 'yes'
+    WHERE siteId = ? 
     ORDER BY createdAt DESC
   `;
   try {

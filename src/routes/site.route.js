@@ -39,6 +39,11 @@ router.get('/public/:subdomain', siteController.getSiteBySubdomain);
 // GET /api/sites/:id - Get site by ID (public or authorized)
 router.get('/:id', siteController.getSiteById);
 
+// GET /api/sites/:id/user - Get user_id by site_id
+router.get('/:id/user', 
+  siteController.getUserIdBySiteId
+);
+
 // ========== PROTECTED ROUTES ==========
 
 // GET /api/sites - Get all sites (for superAdmin) or user's own sites
@@ -73,5 +78,9 @@ router.delete('/:id',
   requireSiteOwnershipOrSuperAdmin,
   siteController.deleteSite
 );
+
+
+// GET /api/sites/id-by-subdomain/:subdomain - Get site ID by subdomain
+router.get('/idBySubdomain/:subdomain', siteController.getSiteIdBySubdomain);
 
 module.exports = router;

@@ -210,10 +210,10 @@ exports.createSite = async (siteData, userRole) => {
   const id = uuidv4();
   
   const sql = `
-    INSERT INTO site (
-      id, name, image, imageAlt, description, phone, user_id, 
-      about, whyUs, QandA, privacy_policy, termsOfUse, \`returning\`, 
-      subdomain, email, isActive, createdAt, modifiedAt
+    INSERT INTO \`site\` (
+      \`id\`, \`name\`, \`image\`, \`imageAlt\`, \`description\`, \`phone\`, \`user_id\`, 
+      \`about\`, \`whyUs\`, \`QandA\`, \`privacy_policy\`, \`termsOfUse\`, \`returning\`, 
+      \`subdomain\`, \`email\`, \`isActive\`, \`createdAt\`, \`modifiedAt\`
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
   `;
   
@@ -273,7 +273,7 @@ exports.createSite = async (siteData, userRole) => {
 
 // الحصول على موقع بواسطة ID
 exports.getSiteById = async (id) => {
-  const sql = 'SELECT * FROM site WHERE id = ?';
+  const sql = 'SELECT * FROM `site` WHERE `id` = ?';
   try {
     const [rows] = await db.query(sql, [id]);
     return rows[0] || null;
@@ -285,7 +285,7 @@ exports.getSiteById = async (id) => {
 
 // الحصول على موقع بواسطة subdomain
 exports.getSiteBySubdomain = async (subdomain) => {
-  const sql = 'SELECT * FROM site WHERE subdomain = ? AND isActive = "yes"';
+  const sql = 'SELECT * FROM `site` WHERE `subdomain` = ? AND `isActive` = "yes"';
   try {
     const [rows] = await db.query(sql, [subdomain]);
     return rows[0] || null;
@@ -297,7 +297,7 @@ exports.getSiteBySubdomain = async (subdomain) => {
 
 // الحصول على جميع المواقع الخاصة بمستخدم
 exports.getUserSites = async (userId) => {
-  const sql = 'SELECT * FROM site WHERE user_id = ? ORDER BY createdAt DESC';
+  const sql = 'SELECT * FROM `site` WHERE `user_id` = ? ORDER BY `createdAt` DESC';
   try {
     const [rows] = await db.query(sql, [userId]);
     return rows;
@@ -309,7 +309,7 @@ exports.getUserSites = async (userId) => {
 
 // الحصول على جميع المواقع
 exports.getAllSites = async () => {
-  const sql = 'SELECT * FROM site ORDER BY createdAt DESC';
+  const sql = 'SELECT * FROM `site` ORDER BY `createdAt` DESC';
   try {
     const [rows] = await db.query(sql);
     return rows;
@@ -329,7 +329,8 @@ exports.updateSite = async (id, updateData) => {
   
   Object.keys(updateData).forEach(key => {
     if (updateData[key] !== undefined && updateData[key] !== null) {
-      fields.push(`${key} = ?`);
+      // وضع backticks حول اسم العمود لتجنب الكلمات المحجوزة
+      fields.push(`\`${key}\` = ?`);
       values.push(updateData[key]);
     }
   });
@@ -339,11 +340,11 @@ exports.updateSite = async (id, updateData) => {
   }
   
   // إضافة modifiedAt
-  fields.push('modifiedAt = NOW()');
+  fields.push('`modifiedAt` = NOW()');
   
   values.push(id);
   
-  const sql = `UPDATE site SET ${fields.join(', ')} WHERE id = ?`;
+  const sql = `UPDATE \`site\` SET ${fields.join(', ')} WHERE \`id\` = ?`;
   
   try {
     const [result] = await db.query(sql, values);
@@ -357,7 +358,7 @@ exports.updateSite = async (id, updateData) => {
 
 // حذف موقع
 exports.deleteSite = async (id) => {
-  const sql = 'DELETE FROM site WHERE id = ?';
+  const sql = 'DELETE FROM `site` WHERE `id` = ?';
   try {
     const [result] = await db.query(sql, [id]);
     return result.affectedRows > 0;
@@ -404,12 +405,46 @@ exports.validateIsActiveUpdate = (updateData, userRole, currentSite) => {
 
 // تفعيل/تعطيل الموقع (للسوبر أدمن فقط)
 exports.toggleSiteActivation = async (siteId, isActive) => {
-  const sql = 'UPDATE site SET isActive = ?, modifiedAt = NOW() WHERE id = ?';
+  const sql = 'UPDATE `site` SET `isActive` = ?, `modifiedAt` = NOW() WHERE `id` = ?';
   try {
     const [result] = await db.query(sql, [isActive, siteId]);
     return result.affectedRows > 0;
   } catch (error) {
     console.error('Error toggling site activation:', error);
+    throw error;
+  }
+};
+
+exports.getSiteIdBySubdomain = async (subdomain) => {
+  const sql = 'SELECT id FROM `site` WHERE `subdomain` = ? AND `isActive` = "yes"';
+  try {
+    const [rows] = await db.query(sql, [subdomain]);
+    return rows[0] ? rows[0].id : null;
+  } catch (error) {
+    console.error('Error getting site ID by subdomain:', error);
+    throw error;
+  }
+};
+
+// الحصول على user_id بواسطة site_id
+exports.getUserIdBySiteId = async (siteId) => {
+  console.log('🔍 Getting user ID by site ID:', siteId);
+  
+  const sql = 'SELECT user_id FROM `site` WHERE `id` = ?';
+  try {
+    const [rows] = await db.query(sql, [siteId]);
+    
+    if (rows.length === 0) {
+      console.log('❌ Site not found');
+      return null;
+    }
+    
+    const userId = rows[0].user_id;
+    console.log('✅ User ID found:', userId);
+    return userId;
+    
+  } catch (error) {
+    console.error('❌ Error getting user ID by site ID:', error);
     throw error;
   }
 };

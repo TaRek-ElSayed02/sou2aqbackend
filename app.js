@@ -24,12 +24,12 @@ const createDirectories = () => {
       fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
       console.log('✅ Created main uploads directory');
     }
-    
+
     if (!fs.existsSync(blogImagesDir)) {
       fs.mkdirSync(blogImagesDir, { recursive: true, mode: 0o755 });
       console.log('✅ Created blog images directory');
     }
-    
+
     // تحقق من صلاحيات الكتابة
     [uploadsDir, blogImagesDir].forEach(dir => {
       try {
@@ -64,14 +64,21 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  'https://yourdomain.com'
+  'http://rest.localhost:3000',
+  'http://rest2.localhost:3000',
+  /^http:\/\/localhost(:\d+)?$/,
+  'https://yourdomain.com',
+  /^http:\/\/localhost(:\d+)?$/,           // localhost بأي port
+  /^http:\/\/(.+\.)?localhost(:\d+)?$/,   // أي subdomain مع localhost
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,       // 127.0.0.1 بأي port
+  /^https?:\/\/(.+\.)?yourdomain\.com$/,
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     // السماح للطلبات بدون origin (مثل Postman)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -116,11 +123,11 @@ app.use('/uploads', (req, res, next) => {
       '.webp': 'image/webp',
       '.svg': 'image/svg+xml'
     };
-    
+
     if (mimeTypes[ext]) {
       res.setHeader('Content-Type', mimeTypes[ext]);
     }
-    
+
     // تعيين هيدرات التخزين المؤقت للصور
     if (ext.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
       res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 ساعة
@@ -183,13 +190,13 @@ app.get('/api/test-uploads', (req, res) => {
     productsImages: path.join(uploadsAbsolutePath, 'productsImages'),
     profileImages: path.join(uploadsAbsolutePath, 'profileImages')
   };
-  
+
   Object.entries(dirs).forEach(([name, dir]) => {
     if (fs.existsSync(dir)) {
       files[name] = fs.readdirSync(dir);
     }
   });
-  
+
   res.json({
     success: true,
     uploadsPath: uploadsAbsolutePath,
@@ -202,11 +209,11 @@ app.get('/api/test-uploads', (req, res) => {
 app.get('/api/test-file/:dir/:filename', (req, res) => {
   const { dir, filename } = req.params;
   const filePath = path.join(uploadsAbsolutePath, dir, filename);
-  
+
   console.log('🔍 Requested file:', filePath);
   console.log('📁 Directory:', path.dirname(filePath));
   console.log('🔐 File exists:', fs.existsSync(filePath));
-  
+
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({
       success: false,
@@ -214,7 +221,7 @@ app.get('/api/test-file/:dir/:filename', (req, res) => {
       requestedPath: filePath
     });
   }
-  
+
   res.sendFile(filePath, (err) => {
     if (err) {
       console.error('❌ Error sending file:', err);
@@ -230,7 +237,7 @@ app.get('/api/test-file/:dir/:filename', (req, res) => {
 // ==================== معالجة الأخطاء ====================
 app.use((err, req, res, next) => {
   console.error('❌ Server Error:', err.stack);
-  
+
   // أخطاء multer
   if (err instanceof multer.MulterError) {
     return res.status(400).json({
@@ -243,7 +250,7 @@ app.use((err, req, res, next) => {
       }
     });
   }
-  
+
   // أخطاء التحقق
   if (err.status === 400) {
     return res.status(400).json({
@@ -255,7 +262,7 @@ app.use((err, req, res, next) => {
       }
     });
   }
-  
+
   // أخطاء 404
   if (err.status === 404) {
     return res.status(404).json({
@@ -267,7 +274,7 @@ app.use((err, req, res, next) => {
       }
     });
   }
-  
+
   // الأخطاء العامة
   res.status(err.status || 500).json({
     success: false,

@@ -450,3 +450,69 @@ exports.toggleSiteActivation = async (req, res) => {
     });
   }
 };
+
+exports.getSiteIdBySubdomain = async (req, res) => {
+  try {
+    const { subdomain } = req.params;
+    console.log('🔍 Getting site ID by subdomain:', subdomain);
+    
+    const siteId = await siteService.getSiteIdBySubdomain(subdomain);
+    
+    if (!siteId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Site not found or not active'
+      });
+    }
+    
+    console.log('✅ Site ID found:', siteId);
+    
+    res.json({
+      success: true,
+      data: {
+        id: siteId
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting site ID by subdomain:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting site ID'
+    });
+  }
+};
+
+// الحصول على user_id بواسطة site_id
+exports.getUserIdBySiteId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('🔍 Getting user ID for site:', id);
+    
+    const userId = await siteService.getUserIdBySiteId(id);
+    
+    if (!userId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Site not found'
+      });
+    }
+    
+    console.log('✅ User ID found:', userId);
+    
+    res.json({
+      success: true,
+      data: {
+        site_id: id,
+        user_id: userId
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error getting user ID:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting user ID'
+    });
+  }
+};

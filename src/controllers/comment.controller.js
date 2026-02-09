@@ -63,7 +63,9 @@ exports.createComment = async (req, res) => {
     console.log('📄 Final comment data to insert:', commentData);
     
     // إنشاء التعليق
-    const newComment = await commentService.createComment(commentData, req.user.id, req.user.role);
+    const userId = req.user ? req.user.id : null;
+    const userRole = req.user ? req.user.role : null;
+    const newComment = await commentService.createComment(commentData, userId, userRole);
     
     console.log('🎉 Comment created successfully:', newComment);
     

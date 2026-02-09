@@ -17,7 +17,6 @@ router.get('/:id', commentController.getCommentById);
 
 // POST /api/comments - Create new comment (authenticated users only)
 router.post('/', 
-  requireAuth,
   commentController.createComment
 );
 
