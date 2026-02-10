@@ -64,14 +64,14 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  'http://tarek.localhost:3000',
-  'http://rest2.localhost:3000',
-  /^http:\/\/localhost(:\d+)?$/,
   'https://yourdomain.com',
-  /^http:\/\/localhost(:\d+)?$/,           // localhost بأي port
-  /^http:\/\/(.+\.)?localhost(:\d+)?$/,   // أي subdomain مع localhost
-  /^http:\/\/127\.0\.0\.1(:\d+)?$/,       // 127.0.0.1 بأي port
-  /^https?:\/\/(.+\.)?yourdomain\.com$/,
+  // Allow any subdomain of localhost on port 3000, e.g.:
+  // http://tarek.localhost:3000, http://foo.bar.localhost:3000
+  /^http:\/\/(.+\.)?localhost:3000$/i,
+  // General local patterns (optional)
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  /^http:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/(.+\.)?yourdomain\.com$/i,
 ];
 
 app.use(cors({
@@ -79,7 +79,15 @@ app.use(cors({
     // السماح للطلبات بدون origin (مثل Postman)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // تحقق من كل عنصر في allowedOrigins — يدعم كل من السلاسل و RegExp
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
       console.log('🚫 CORS blocked origin:', origin);
