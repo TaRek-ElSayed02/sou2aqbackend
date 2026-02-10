@@ -141,7 +141,7 @@ const loginRoutes = require('./src/routes/login.route');
 const blogRoutes = require('./src/routes/blog.route');
 const usersRoutes = require('./src/routes/users.route');
 const productsRoutes = require('./src/routes/products.route');
-
+// http://localhost:5000
 app.use('/api/auth', registerRoutes);
 app.use('/api/auth', loginRoutes);
 app.use('/api/blogs', blogRoutes);
