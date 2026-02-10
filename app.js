@@ -64,7 +64,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  'http://rest.localhost:3000',
+  'http://tarek.localhost:3000',
   'http://rest2.localhost:3000',
   /^http:\/\/localhost(:\d+)?$/,
   'https://yourdomain.com',
