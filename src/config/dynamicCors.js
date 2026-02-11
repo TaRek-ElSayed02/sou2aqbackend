@@ -1,11 +1,10 @@
-// config/dynamicCors.js
 const redis = require('redis'); // أو أي قاعدة بيانات
 
 class DynamicCORS {
   constructor() {
     this.allowedOrigins = new Set([
       'http://localhost:3000',
-      'https://yourdomain.com'
+      // 'http://tarek.localhost:3000',
     ]);
     
     this.allowedPatterns = [

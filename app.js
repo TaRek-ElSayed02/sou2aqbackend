@@ -149,12 +149,14 @@ const loginRoutes = require('./src/routes/login.route');
 const blogRoutes = require('./src/routes/blog.route');
 const usersRoutes = require('./src/routes/users.route');
 const productsRoutes = require('./src/routes/products.route');
+const articlesRoutes = require('./src/routes/articles.route');
 // http://localhost:5000
 app.use('/api/auth', registerRoutes);
 app.use('/api/auth', loginRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/articles', articlesRoutes);
 app.use('/api/wishlist', require('./src/routes/wishlist.route'));
 app.use('/api/cart', require('./src/routes/cart.route'));
 app.use('/api/site', require('./src/routes/site.route'));

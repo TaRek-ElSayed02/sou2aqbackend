@@ -307,6 +307,18 @@ exports.getUserSites = async (userId) => {
   }
 };
 
+// الحصول على site IDs بواسطة user_id
+exports.getSiteIdsByUserId = async (userId) => {
+  const sql = 'SELECT id FROM `site` WHERE `user_id` = ? ORDER BY `createdAt` DESC';
+  try {
+    const [rows] = await db.query(sql, [userId]);
+    return rows.map(r => r.id);
+  } catch (error) {
+    console.error('Error getting site IDs by user ID:', error);
+    throw error;
+  }
+};
+
 // الحصول على جميع المواقع
 exports.getAllSites = async () => {
   const sql = 'SELECT * FROM `site` ORDER BY `createdAt` DESC';

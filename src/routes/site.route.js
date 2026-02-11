@@ -44,6 +44,9 @@ router.get('/:id/user',
   siteController.getUserIdBySiteId
 );
 
+// GET /api/sites/user/:id/sites - Get site IDs by user_id (protected: owner or superAdmin)
+router.get('/user/:id/sites', siteController.getSiteIdsByUserId);
+
 // ========== PROTECTED ROUTES ==========
 
 // GET /api/sites - Get all sites (for superAdmin) or user's own sites

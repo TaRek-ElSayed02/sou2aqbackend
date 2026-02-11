@@ -516,3 +516,22 @@ exports.getUserIdBySiteId = async (req, res) => {
     });
   }
 };
+
+// الحصول على site IDs بواسطة user_id
+exports.getSiteIdsByUserId = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log('🔍 Getting site IDs for user:', userId);
+
+    const siteIds = await siteService.getSiteIdsByUserId(userId);
+
+    if (!siteIds || !siteIds.length) {
+      return res.status(404).json({ success: false, message: 'No sites found for this user' });
+    }
+
+    res.json({ success: true, data: { user_id: userId, site_ids: siteIds } });
+  } catch (error) {
+    console.error('❌ Error getting site IDs by user ID:', error);
+    res.status(500).json({ success: false, message: 'Error getting site IDs' });
+  }
+};
